@@ -5,36 +5,66 @@ use IEEE.STD_LOGIC_UNSIGNED.ALL;
 
 -- counter is connected to the q from the univ bin counter when instiatated in the top level 
 entity state_machine is 
-    Port ( clk              : in STD_LOGIC; 
-           clk_en           : in STD_LOGIC; 
+    Port ( clk              : in STD_LOGIC;
+           clk_en           : out STD_LOGIC; 
            rst              : in STD_LOGIC; 
            keypad_data      : in STD_LOGIC_VECTOR(4 downto 0);
 			  counter          : in STD_LOGIC_VECTOR(7 downto 0) := (others => '0'); 
            data_valid_pulse : in STD_LOGIC; 
-			  clk_en_60ns      : in std_LOGIC; 
-			  clk_en_1s        : in std_LOGIC; 
-			  kp_pulse         : in std_LOGIC
+			  clk_en_60ns      : inout std_LOGIC; 
+			  clk_en_1s        : inout std_LOGIC; 
+			  kp_pulse         : in std_LOGIC;
 			  en, up, r_w      : out STD_LOGIC;
-           state            : out STD_LOGIC_VECTOR(3 downto 0)); 
 			  pulse            : out std_logic; 
+           state            : out STD_LOGIC_VECTOR(3 downto 0)); 
 end state_machine; 
 
 architecture Behavioral of state_machine is 
     type states is (INIT, OP_UP_Pause, OP_UP, OP_DOWN, OP_DOWN_Pause, Prog_UP_DATA, Prog_UP_ADDress, Prog_DOWN_DATA, Prog_DOWN_ADDress); 
     signal current_state, next_state : states;  
+	 signal clk_cnt_60ns : integer range 0 to 3;
+	 signal clk_cnt_1s : integer range 0 to 100;
     signal state_value               : STD_LOGIC_VECTOR(3 downto 0);
-	 signal en_sig, up_sig                    : STD_LOGIC; 
+	 signal en_sig, up_sig            : STD_LOGIC; 
 
-begin 
+
+begin
+
+process(clk)
+	begin
+	if rising_edge(clk) then
+		if (clk_cnt_60ns = 3) then
+			clk_cnt_60ns <= 0;
+			clk_en_60ns <= '1';
+		else
+			clk_cnt_60ns <= clk_cnt_60ns + 1;
+			clk_en_60ns <= '0';
+		end if;
+	end if;
+	end process;
+	
+process(clk)
+	begin
+	if rising_edge(clk) then
+		if (clk_cnt_1s = 100) then -- change back to 49999999 for hardware 
+			clk_cnt_1s <= 0;
+			clk_en_1s <= '1';
+		else
+			clk_cnt_1s <= clk_cnt_1s + 1;
+			clk_en_1s <= '0';
+		end if;
+	end if;
+	end process;
+
 
     process(clk, rst) 
     begin 
 
-        if rst = '1' then 
+        if rst = '1' and counter = "000000000" then 
             current_state <= INIT; 
             --counter <= (others => '0'); 
 
-        elsif rising_edge(clk) and clk_en = '1' then 
+        elsif rising_edge(clk) and clk_en_60ns = '1' then 
             current_state <= next_state; 
             --counter <= counter + 1; 
         end if; 
@@ -201,10 +231,25 @@ begin
   else
       r_w <= '0';
   end if;
+ end process;
+ 
+ -- mux for clk_en  
+process (state_value, clk_en_60ns, clk_en_1s) is
+begin
+  if (state_value(3) ='0' and state_value(2)= '0') then
+      clk_en <= clk_en_60ns;
+  elsif (state_value(3) ='0' and state_value(2) = '1') then
+      clk_en <= clk_en_1s;
+  elsif (state_value(3) ='1' and state_value(2) = '0') then
+      clk_en <= '0';
+  else
+      clk_en <= '0';
+  end if;
  
 end process;
 
 up <= up_sig; 
 en <= en_sig; 
 	 
-end Behavioral; 
+end Behavioral;
+ 
