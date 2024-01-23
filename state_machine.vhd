@@ -22,7 +22,7 @@ end state_machine;
 architecture Behavioral of state_machine is 
     type states is (INIT, OP_UP_Pause, OP_UP, OP_DOWN, OP_DOWN_Pause, Prog_UP_DATA, Prog_UP_ADDress, Prog_DOWN_DATA, Prog_DOWN_ADDress); 
     signal current_state, next_state : states;  
-	 signal clk_cnt_60ns : integer range 0 to 3;
+	 signal clk_cnt_60ns : integer range 0 to 2;
 	 signal clk_cnt_1s : integer range 0 to 100;
     signal state_value               : STD_LOGIC_VECTOR(3 downto 0);
 	 signal en_sig, up_sig            : STD_LOGIC; 
@@ -33,7 +33,7 @@ begin
 process(clk)
 	begin
 	if rising_edge(clk) then
-		if (clk_cnt_60ns = 3) then
+		if (clk_cnt_60ns = 2) then
 			clk_cnt_60ns <= 0;
 			clk_en_60ns <= '1';
 		else
@@ -60,7 +60,7 @@ process(clk)
     process(clk, rst) 
     begin 
 
-        if rst = '1' and counter = "000000000" then 
+        if rst = '1' then 
             current_state <= INIT; 
             --counter <= (others => '0'); 
 
@@ -129,7 +129,7 @@ process(clk)
                     next_state <= Prog_DOWN_ADDress; 
 
                 elsif keypad_data = "10001" and data_valid_pulse = '1' then 
-                    next_state <= OP_UP_PAUSE; 
+                    next_state <= OP_UP_Pause; 
                 end if; 
 
             when OP_DOWN => 
@@ -180,11 +180,11 @@ process(clk)
 -- mux for en 
 process (state_value) is
 begin
-  if (state_value(3) ='0' and state_value(2)= '0') then
+  if (state_value(3 downto 2) = "00") then
       en_sig <= state_value(0);
-  elsif (state_value(3) ='0' and state_value(2) = '1') then
+  elsif (state_value(3 downto 2) = "01") then
       en_sig <= state_value(0);
-  elsif (state_value(3) ='1' and state_value(2) = '0') then
+  elsif (state_value(3 downto 2) = "10" then
       en_sig <= '0';
   else
       en_sig <= '0';
@@ -194,11 +194,11 @@ end process;
 -- mux for up	 
 process (state_value) is
 begin
-  if (state_value(3) ='0' and state_value(2)= '0') then
+  if (state_value(3 downto 2) = "00") then
       up_sig <= state_value(0);
-  elsif (state_value(3) ='0' and state_value(2) = '1') then
+  elsif (state_value(3 downto 2) = "01") then
       up_sig <= state_value(0);
-  elsif (state_value(3) ='1' and state_value(2) = '0') then
+  elsif (state_value(3 downto 2) = "10" then
       up_sig <= '0';
   else
       up_sig <= '0';
@@ -206,13 +206,13 @@ begin
 end process;
 
 -- mux for pulse 
-process (state_value) is
+process (state_value, clk_en_60ns, clk_en_1s, kp_pulse) is
 begin
-  if (state_value(3) ='0' and state_value(2)= '0') then
+  if (state_value(3 downto 2) = "00") then
       pulse <= clk_en_60ns;
-  elsif (state_value(3) ='0' and state_value(2) = '1') then
+  elsif (state_value(3 downto 2) = "01") then
       pulse <= clk_en_1s;
-  elsif (state_value(3) ='1' and state_value(2) = '0') then
+  elsif (state_value(3 downto 2) = "10" then
       pulse <= kp_pulse;
   else
       pulse <= '0';
@@ -222,11 +222,11 @@ end process;
 -- mux for read/write 
 process (state_value) is
 begin
-  if (state_value(3) ='0' and state_value(2)= '0') then
+  if (state_value(3 downto 2) = "00") then
       r_w <= '0';
-  elsif (state_value(3) ='0' and state_value(2) = '1') then
+  elsif (state_value(3 downto 2) = "01") then
       r_w <= '1';
-  elsif (state_value(3) ='1' and state_value(2) = '0') then
+  elsif (state_value(3 downto 2) = "10" then
       r_w <= '0';
   else
       r_w <= '0';
@@ -236,11 +236,11 @@ begin
  -- mux for clk_en  
 process (state_value, clk_en_60ns, clk_en_1s) is
 begin
-  if (state_value(3) ='0' and state_value(2)= '0') then
+  if (state_value(3 downto 2) = "00") then
       clk_en <= clk_en_60ns;
-  elsif (state_value(3) ='0' and state_value(2) = '1') then
+  elsif (state_value(3 downto 2) = "01") then
       clk_en <= clk_en_1s;
-  elsif (state_value(3) ='1' and state_value(2) = '0') then
+  elsif (state_value(3 downto 2) = "10") then
       clk_en <= '0';
   else
       clk_en <= '0';
